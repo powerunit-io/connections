@@ -10,3 +10,14 @@ func StringInSlice(str string, list []string) bool {
 	}
 	return false
 }
+
+// KeyInSlice - Will check if key in list.
+// This is equivalent to python if x in []
+func KeyInSlice(str string, list map[string]interface{}) bool {
+	for key, _ := range list {
+		if key == str {
+			return true
+		}
+	}
+	return false
+}
