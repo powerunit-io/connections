@@ -1,12 +1,45 @@
 package logging
 
 import (
+	"fmt"
+	"io"
+	"os"
+
 	"github.com/Sirupsen/logrus"
+	"github.com/powerunit-io/platform/constants"
 )
 
 // Logger -
 type Logger struct {
 	logrus.Logger
+}
+
+// SetFormatter -
+func (l *Logger) SetFormatter(formatter logrus.Formatter) {
+	logrus.SetFormatter(formatter)
+}
+
+// SetOutput -
+func (l *Logger) SetOutput(output io.Writer) {
+	logrus.SetOutput(output)
+}
+
+// SetLevel -
+func (l *Logger) SetLevel(levelEnv string) error {
+
+	level := constants.DEFAULT_LOGGING_LEVEL
+
+	if lvl := os.Getenv(levelEnv); lvl != "" {
+		level = lvl
+	}
+
+	if lvl, err := logrus.ParseLevel(level); err != nil {
+		return fmt.Errorf("Could not set logging level due to (err: %s)", err)
+	} else {
+		logrus.SetLevel(lvl)
+	}
+
+	return nil
 }
 
 // Error -
