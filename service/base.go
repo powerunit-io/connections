@@ -4,19 +4,22 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/powerunit-io/platform/config"
 	"github.com/powerunit-io/platform/logging"
 	"github.com/powerunit-io/platform/utils"
+	"github.com/powerunit-io/platform/workers/manager"
+	"github.com/powerunit-io/platform/workers/worker"
 )
 
 // BaseService -
 type BaseService struct {
 	*logging.Logger
 	Config *config.ConfigManager
-
+	manager.Manager
 	done chan bool
 }
 
@@ -38,7 +41,24 @@ func (bs *BaseService) Start() error {
 
 	bs.done = make(chan bool)
 
+	var wg sync.WaitGroup
+
 	go bs.HandleSigterm()
+
+	bs.Info("Available (workers: %v). Starting them up now ...", bs.Manager.ListAvailableWorkers())
+
+	for _, mworker := range bs.Manager.GetWorkers() {
+		wg.Add(1)
+
+		go func(w worker.Worker) {
+			if err := w.Start(bs.done); err != nil {
+				bs.Error("Could not start (worker: %s) due to (error: %s)", w.String(), err)
+			}
+			wg.Done()
+		}(mworker)
+	}
+
+	wg.Wait()
 
 	select {
 	case <-bs.done:

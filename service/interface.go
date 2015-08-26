@@ -2,8 +2,9 @@ package service
 
 // Service -
 type Service interface {
-	Start() error
 	SetGoMaxProcs(envKey string)
+
+	Start() error
 	Stop() error
 }
 
