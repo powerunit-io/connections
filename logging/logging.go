@@ -85,5 +85,13 @@ func (l *Logger) GetContextLogger(fields map[string]interface{}) *logrus.Entry {
 // New -
 func New() *Logger {
 	logger := Logger{}
+
+	logger.SetFormatter(&logrus.TextFormatter{
+		ForceColors:     true,
+		TimestampFormat: "Mon Jan _2 15:04:05 2006",
+		FullTimestamp:   true,
+		DisableSorting:  true,
+	})
+
 	return &logger
 }

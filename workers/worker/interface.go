@@ -9,6 +9,7 @@ type Worker interface {
 	Handle(e *events.Event) error
 
 	Start(done chan bool) error
+	Stop() error
 }
 
 // NewWorker -

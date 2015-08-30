@@ -18,7 +18,7 @@ import (
 // BaseService -
 type BaseService struct {
 	*logging.Logger
-	Config *config.ConfigManager
+	*config.Config
 	manager.Manager
 	done chan bool
 }
@@ -36,7 +36,7 @@ func (bs *BaseService) SetGoMaxProcs(envKey string) {
 func (bs *BaseService) Start() error {
 	bs.Info(
 		"Starting up (service: %s) - (ver: %v)",
-		bs.Config.Get("ServiceName"), bs.Config.Get("ServiceVersion"),
+		bs.Config.Get("service_name"), bs.Config.Get("service_version"),
 	)
 
 	bs.done = make(chan bool)
@@ -76,8 +76,22 @@ func (bs *BaseService) Start() error {
 
 // Stop - Generic service stop function
 func (bs *BaseService) Stop() error {
+	var wg sync.WaitGroup
 
-	bs.Warning("Service (name: %s) is now stopped!", bs.Config.Get("ServiceName"))
+	for _, mworker := range bs.Manager.GetWorkers() {
+		wg.Add(1)
+
+		go func(w worker.Worker) {
+			if err := w.Stop(); err != nil {
+				bs.Error("Could not stop (worker: %s) due to (error: %s)", w.String(), err)
+			}
+			wg.Done()
+		}(mworker)
+	}
+
+	wg.Wait()
+
+	bs.Warning("Service (name: %s) is now stopped!", bs.Config.Get("service_name"))
 	os.Exit(0)
 
 	return nil
