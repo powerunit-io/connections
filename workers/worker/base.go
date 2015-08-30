@@ -34,12 +34,6 @@ func (bw *BaseWorker) Validate() error {
 	return nil
 }
 
-// Stop -
-func (bw *BaseWorker) Stop() error {
-	bw.Warning("Stopping (device: %s) ...", bw.String())
-	return nil
-}
-
 // String - We use it to name worker when needed.
 func (bw BaseWorker) String() string {
 	return bw.Config.Get("worker_name").(string)

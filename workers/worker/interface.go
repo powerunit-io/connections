@@ -13,6 +13,6 @@ type Worker interface {
 }
 
 // NewWorker -
-func NewWorker(worker Worker) Worker {
+func New(worker Worker) Worker {
 	return worker
 }

@@ -8,6 +8,7 @@ import (
 type MqttManager interface {
 	Start(done chan bool) error
 	Validate() error
+	String() string
 	Stop() error
 }
 
