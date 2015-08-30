@@ -36,5 +36,9 @@ func (bw *BaseWorker) Validate() error {
 
 // String - We use it to name worker when needed.
 func (bw BaseWorker) String() string {
-	return bw.Config.Get("worker_name").(string)
+	if worker, ok := bw.Config.Get("worker_name").(string); ok {
+		return worker
+	}
+
+	return ""
 }
