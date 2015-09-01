@@ -1,12 +1,10 @@
 package worker
 
-import "github.com/powerunit-io/platform/events"
-
 // Worker -
 type Worker interface {
 	String() string
 	Validate() error
-	Handle(e *events.Event) error
+	Handle(done chan bool)
 
 	Start(done chan bool) error
 	Stop() error

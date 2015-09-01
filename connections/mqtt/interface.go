@@ -6,7 +6,7 @@ import (
 )
 
 type MqttManager interface {
-	Start(done chan bool) error
+	Start(done chan bool) chan error
 	Validate() error
 	String() string
 	Stop() error
