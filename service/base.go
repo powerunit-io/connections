@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/powerunit-io/platform/config"
+	helpers "github.com/powerunit-io/platform/helpers/manager"
 	"github.com/powerunit-io/platform/logging"
 	"github.com/powerunit-io/platform/utils"
 	"github.com/powerunit-io/platform/workers/manager"
@@ -18,18 +19,19 @@ import (
 // BaseService -
 type BaseService struct {
 	*logging.Logger
-	*config.Config
-	manager.Manager
-	done chan bool
+	Config         *config.Config
+	Manager        manager.Manager
+	HelpersManager helpers.Manager
+	done           chan bool
 }
 
 // SetGoMaxProcs - Will set GOMAXPROCS based on custom ENV key or NumCPU
 func (bs *BaseService) SetGoMaxProcs(envKey string) {
-	numCpu := utils.GetProcessCount(envKey)
+	numCPU := utils.GetProcessCount(envKey)
 	bs.Warning(
-		"Setting up runtime in parallel mode -> (threads: %d) ...", numCpu,
+		"Setting up runtime in parallel mode -> (threads: %d) ...", numCPU,
 	)
-	runtime.GOMAXPROCS(numCpu)
+	runtime.GOMAXPROCS(numCPU)
 }
 
 // Start - Generic service start function
@@ -51,9 +53,13 @@ func (bs *BaseService) Start() error {
 		wg.Add(1)
 
 		go func(w worker.Worker) {
+
 			if err := w.Start(bs.done); err != nil {
-				bs.Error("Could not start (worker: %s) due to (error: %s)", w.String(), err)
+				bs.Error("Could not start (worker: %s) due to (error: %s)", w.WorkerName(), err)
+			} else {
+				w.Handle(bs.done)
 			}
+
 			wg.Done()
 		}(mworker)
 	}
@@ -83,7 +89,7 @@ func (bs *BaseService) Stop() error {
 
 		go func(w worker.Worker) {
 			if err := w.Stop(); err != nil {
-				bs.Error("Could not stop (worker: %s) due to (error: %s)", w.String(), err)
+				bs.Error("Could not stop (worker: %s) due to (error: %s)", w.WorkerName(), err)
 			}
 			wg.Done()
 		}(mworker)

@@ -1,4 +1,4 @@
-package mqtt
+package mysql
 
 import (
 	"github.com/powerunit-io/platform/config"
@@ -9,17 +9,13 @@ import (
 type Manager interface {
 	Start(done chan bool) chan error
 	Validate() error
-	String() string
+	WorkerName() string
 	Stop() error
 }
 
 // NewConnection -
 func NewConnection(log *logging.Logger, conf *config.Config) (Manager, error) {
-	manager := func(m Manager) Manager {
-		return m
-	}
-
-	connection := Connection{Logger: log, Config: conf}
-
-	return manager(&connection), nil
+	return Manager(&Connection{
+		Logger: log, Config: conf, Uri: conf.Get("uri").(string),
+	}), nil
 }

@@ -9,4 +9,7 @@ var (
 
 	// MaxTopicSubscribeAttempts -
 	MaxTopicSubscribeAttempts = 5
+
+	// GracefulShutdownTimeout -
+	GracefulShutdownTimeout = 1
 )

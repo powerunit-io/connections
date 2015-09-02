@@ -34,6 +34,15 @@ func (bw *BaseWorker) Validate() error {
 	return nil
 }
 
+// WorkerName -
+func (bw BaseWorker) WorkerName() string {
+	if worker, ok := bw.Config.Get("worker_name").(string); ok {
+		return worker
+	}
+
+	return ""
+}
+
 // String - We use it to name worker when needed.
 func (bw BaseWorker) String() string {
 	if worker, ok := bw.Config.Get("worker_name").(string); ok {
