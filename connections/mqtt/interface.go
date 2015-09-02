@@ -15,11 +15,5 @@ type Manager interface {
 
 // NewConnection -
 func NewConnection(log *logging.Logger, conf *config.Config) (Manager, error) {
-	manager := func(m Manager) Manager {
-		return m
-	}
-
-	connection := Connection{Logger: log, Config: conf}
-
-	return manager(&connection), nil
+	return Manager(&Connection{Logger: log, Config: conf}), nil
 }

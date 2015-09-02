@@ -17,11 +17,7 @@ type Manager interface {
 
 // NewWorkerManager -
 func NewWorkerManager(log *logging.Logger) Manager {
-	wm := func(m Manager) Manager {
-		return m
-	}
-
-	return wm(&WorkerManager{
+	return Manager(&WorkerManager{
 		Logger:  log,
 		Workers: make(map[string]worker.Worker),
 	})
