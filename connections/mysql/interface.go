@@ -1,16 +1,22 @@
 package mysql
 
 import (
+	"database/sql"
+
 	"github.com/powerunit-io/platform/config"
 	"github.com/powerunit-io/platform/logging"
 )
 
 // Manager -
 type Manager interface {
-	Start(done chan bool) chan error
+	Name() string
+
 	Validate() error
-	WorkerName() string
+
+	Start(done chan bool) chan error
 	Stop() error
+
+	Conn() *sql.DB
 }
 
 // NewConnection -

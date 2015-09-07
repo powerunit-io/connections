@@ -2,12 +2,13 @@ package mysql
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
-	"github.com/0x19/datamonitor-api/utils"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/powerunit-io/platform/config"
 	"github.com/powerunit-io/platform/logging"
+	"github.com/powerunit-io/platform/utils"
 )
 
 // Connection -
@@ -71,6 +72,16 @@ func (m *Connection) Start(done chan bool) chan error {
 
 // Validate -
 func (m *Connection) Validate() error {
+	m.Info("Validating mysql configuration for (name: %s)", m.Name())
+
+	// @TODO - This needs proper regex validation ...
+	if len(m.Uri) < 10 {
+		return fmt.Errorf(
+			"Failed to validate mysql connection (name: %s) uri. You've passed (uri: %s)",
+			m.Name(), m.Uri,
+		)
+	}
+
 	return nil
 }
 
@@ -92,7 +103,7 @@ func (m *Connection) Connect() error {
 		return err
 	}
 
-	concurrency := utils.GetConcurrencyCount()
+	concurrency := utils.GetConcurrencyCount("PU_GO_MAX_CONCURRENCY")
 
 	// Setting up max idle conns based on concurrency
 	m.DB.SetMaxIdleConns(int(concurrency))
@@ -126,13 +137,22 @@ func (m *Connection) IsConnected() bool {
 	return true
 }
 
-// WorkerName -
-func (m *Connection) WorkerName() string {
-	return m.Config.Get("worker_name").(string)
+// Conn -
+func (m *Connection) Conn() *sql.DB {
+	return m.DB
+}
+
+// Name -
+func (m *Connection) Name() string {
+	return m.Config.Get("name").(string)
 }
 
 // Stop - Will close MySQL connection if we ever need it
 func (m *Connection) Stop() error {
-	m.Warning("Closing MySQL connection ...")
+	m.Warning(
+		"Closing MySQL connection for (name: %s) - (uri: %s) ...",
+		m.Name(), m.Uri,
+	)
+
 	return m.Close()
 }

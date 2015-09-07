@@ -4,6 +4,8 @@ package service
 type Service interface {
 	SetGoMaxProcs(envKey string)
 
+	Bind(bind BindManager) error
+
 	Start() error
 	Stop() error
 }

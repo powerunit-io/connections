@@ -9,11 +9,14 @@ import (
 	"time"
 
 	"github.com/powerunit-io/platform/config"
+	"github.com/powerunit-io/platform/devices/device"
+	devices "github.com/powerunit-io/platform/devices/manager"
 	helpers "github.com/powerunit-io/platform/helpers/manager"
 	"github.com/powerunit-io/platform/logging"
 	"github.com/powerunit-io/platform/utils"
 	"github.com/powerunit-io/platform/workers/manager"
 	"github.com/powerunit-io/platform/workers/worker"
+	"github.com/telapi/flumine/logger"
 )
 
 // BaseService -
@@ -22,6 +25,8 @@ type BaseService struct {
 	Config         *config.Config
 	Manager        manager.Manager
 	HelpersManager helpers.Manager
+	DevicesManager devices.Manager
+	Binds          map[string]BindManager
 	done           chan bool
 }
 
@@ -47,24 +52,16 @@ func (bs *BaseService) Start() error {
 
 	go bs.HandleSigterm()
 
-	bs.Info("Available (workers: %v). Starting them up now ...", bs.Manager.ListAvailableWorkers())
+	bs.StartBinds(wg)
 
-	for _, mworker := range bs.Manager.GetWorkers() {
-		wg.Add(1)
-
-		go func(w worker.Worker) {
-
-			if err := w.Start(bs.done); err != nil {
-				bs.Error("Could not start (worker: %s) due to (error: %s)", w.WorkerName(), err)
-			} else {
-				w.Handle(bs.done)
-			}
-
-			wg.Done()
-		}(mworker)
+	// Will basically import devices from devices manager...
+	if err := bs.DevicesManager.ImportDevices(); err != nil {
+		logger.Error("Could not import devices due to (error: %s)", err)
+		close(bs.done)
+	} else {
+		bs.StartDevices(wg)
+		bs.StartWorkers(wg)
 	}
-
-	wg.Wait()
 
 	select {
 	case <-bs.done:
@@ -84,6 +81,19 @@ func (bs *BaseService) Start() error {
 func (bs *BaseService) Stop() error {
 	var wg sync.WaitGroup
 
+	for _, mbind := range bs.GetBinds() {
+		wg.Add(1)
+
+		go func(bm BindManager) {
+			if err := bm.Stop(); err != nil {
+				bs.Error("Could not stop (bind: %s) due to (error: %s)", bm.Name(), err)
+			}
+			wg.Done()
+		}(mbind)
+	}
+
+	wg.Wait()
+
 	for _, mworker := range bs.Manager.GetWorkers() {
 		wg.Add(1)
 
@@ -93,6 +103,19 @@ func (bs *BaseService) Stop() error {
 			}
 			wg.Done()
 		}(mworker)
+	}
+
+	wg.Wait()
+
+	for _, mdevice := range bs.DevicesManager.GetDevices() {
+		wg.Add(1)
+
+		go func(d device.Device) {
+			if err := d.Stop(); err != nil {
+				bs.Error("Could not stop (device: %s) due to (error: %s)", d.DeviceName(), err)
+			}
+			wg.Done()
+		}(mdevice)
 	}
 
 	wg.Wait()
