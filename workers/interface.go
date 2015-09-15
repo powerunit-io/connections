@@ -2,13 +2,21 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// Package connections ...
-package connections
+// Package workers ...
+package workers
 
 import (
+	"github.com/powerunit-io/platform/events"
 	"github.com/powerunit-io/platform/logging"
 	"github.com/powerunit-io/platform/managers"
 )
+
+// Worker -
+type Worker interface {
+	managers.Service
+
+	Handle(e <-chan events.Event)
+}
 
 // Manager -
 type Manager interface {

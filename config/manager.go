@@ -1,3 +1,8 @@
+// Copyright 2015 The PowerUnit Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+// Package config ...
 package config
 
 import (
@@ -14,7 +19,8 @@ func ConfigManagerExists(manager string) bool {
 	return utils.KeyInSlice(manager, ConfigManager)
 }
 
-// GetConfigManager -
+// GetConfigManager - Will retreive config back in case it's discovered. If not
+// error will be returned.
 func GetConfigManager(managerName string) (*Config, error) {
 
 	if !ConfigManagerExists(managerName) {
@@ -25,7 +31,8 @@ func GetConfigManager(managerName string) (*Config, error) {
 	return &manager, nil
 }
 
-// SetConfigManager -
+// SetConfigManager - Will create and assign new configuration manager based on
+// provided name and cofiguration data
 func SetConfigManager(managerName string, configData map[string]interface{}) (*Config, error) {
 	if !ConfigManagerExists(managerName) {
 		ConfigManager[managerName] = Config{

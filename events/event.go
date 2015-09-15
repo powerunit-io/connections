@@ -1,3 +1,8 @@
+// Copyright 2015 The PowerUnit Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+// Package events ...
 package events
 
 import (
@@ -12,13 +17,9 @@ import (
 // Event -
 type Event struct {
 	MQTT.Message
-	EventType  string                 `json:"event_type"`
-	Floor      string                 `json:"floor"`
-	Room       string                 `json:"room"`
-	Plc        string                 `json:"plc"`
-	Device     string                 `json:"string"`
-	DeviceType string                 `json:"string"`
-	Data       map[string]interface{} `json:"data"`
+	EventType string                 `json:"type"`
+	DeviceID  string                 `json:"device_id"`
+	Data      map[string]interface{} `json:"data"`
 }
 
 // Validate -

@@ -1,3 +1,8 @@
+// Copyright 2015 The PowerUnit Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+// Package mqtt ...
 package mqtt
 
 import (
@@ -9,7 +14,6 @@ import (
 	"github.com/powerunit-io/platform/events"
 	"github.com/powerunit-io/platform/logging"
 	"github.com/powerunit-io/platform/utils"
-	"github.com/powerunit-io/platform/workers/worker"
 
 	MQTT "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
 )
@@ -18,18 +22,21 @@ import (
 type Connection struct {
 	*logging.Logger
 	*config.Config
-	*worker.BaseWorker
 
 	conn   *MQTT.Client
 	events chan events.Event
 }
 
 // Start -
-func (c *Connection) Start(done chan bool) chan error {
+func (c *Connection) Start(done chan bool) error {
 	opts := MQTT.NewClientOptions().AddBroker(c.GetBrokerAddr())
-	opts.SetClientID(c.GetBrokerClientId())
+	opts.SetClientID(c.GetBrokerClientID())
 	opts.SetDefaultPublishHandler(c.BrokerHandler)
 	opts.SetAutoReconnect(true)
+
+	username, password := c.GetBrokerCredentials()
+	opts.SetUsername(username)
+	opts.SetPassword(password)
 
 	concurrency := utils.GetConcurrencyCount("PU_GO_MAX_CONCURRENCY")
 	c.events = make(chan events.Event, concurrency)
@@ -39,20 +46,16 @@ func (c *Connection) Start(done chan bool) chan error {
 
 	go func() {
 		for {
-			c.Warning("Starting mqtt (worker: %s) on (addr: %s)...", c.WorkerName(), c.GetBrokerAddr())
+			c.Info("Starting MQTT (connection: %s) on (addr: %s)...", c.Name(), c.GetBrokerAddr())
 
 			reload := make(chan bool)
 			c.conn = MQTT.NewClient(opts)
 
 			if token := c.conn.Connect(); token.Wait() && token.Error() != nil {
-				errors <- fmt.Errorf(
-					"Failed to establish connection with mqtt server (error: %s)",
-					token.Error(),
-				)
+				errors <- fmt.Errorf("Failed to establish connection with mqtt server (error: %s)", token.Error())
 				continue
 			}
 
-			// In case we hit connected, ensure that main func is notified
 			if !c.conn.IsConnected() {
 				continue
 			}
@@ -73,7 +76,7 @@ func (c *Connection) Start(done chan bool) chan error {
 							return
 						}
 					case <-done:
-						c.Warning("Received stop signal for mqtt (worker: %s). Will not attempt to restart worker ...", c.WorkerName())
+						c.Warning("Received stop signal for mqtt (worker: %s). Will not attempt to restart worker ...", c.Name())
 						return
 					}
 				}
@@ -83,7 +86,7 @@ func (c *Connection) Start(done chan bool) chan error {
 			for {
 				select {
 				case <-reload:
-					c.Warning("Mqtt (worker: %s) seems not to be connected. Restarting loop in 2 seconds ...", c.WorkerName())
+					c.Warning("Mqtt (worker: %s) seems not to be connected. Restarting loop in 2 seconds ...", c.Name())
 					time.Sleep(2 * time.Second)
 					break reloadloop
 				}
@@ -96,18 +99,22 @@ func (c *Connection) Start(done chan bool) chan error {
 	case <-connected:
 		c.Info(
 			"Successfully established mqtt connection for (worker: %s) on (addr: %s)",
-			c.WorkerName(), c.GetBrokerAddr(),
+			c.Name(), c.GetBrokerAddr(),
 		)
 		break
+
+	// @TODO - Figure out how to handle multiple errors ...
+	case err := <-errors:
+		return err
 	case <-time.After(time.Duration(InitialConnectionTimeout) * time.Second):
 		errors <- fmt.Errorf(
 			"Could not establish mqtt connection for (worker: %s) on (addr: %s) due to initial connection (timeout: %ds)",
-			c.WorkerName(), c.GetBrokerAddr(), InitialConnectionTimeout,
+			c.Name(), c.GetBrokerAddr(), InitialConnectionTimeout,
 		)
 		break
 	}
 
-	return errors
+	return nil
 }
 
 // DrainEvents - Will return event chan back for future processing by workers
@@ -120,9 +127,9 @@ func (c *Connection) Subscribe(topic string, maxRetryAttempts int) error {
 	var err error
 
 	for i := 0; i <= maxRetryAttempts; i++ {
-		c.Debug(
+		c.Info(
 			"About to attempt subscribe to mqtt (topic: %s) for (worker: %s) -> (retry_attempt: %d)",
-			topic, c.WorkerName(), i,
+			topic, c.Name(), i,
 		)
 
 		if token := c.conn.Subscribe(topic, 0, nil); token.Wait() && token.Error() != nil {
@@ -132,7 +139,7 @@ func (c *Connection) Subscribe(topic string, maxRetryAttempts int) error {
 		}
 
 		c.Info("Successfully subscribed (worker: %s) on (topic: %s)!",
-			c.WorkerName(), c.GetBrokerTopicName(),
+			c.Name(), c.GetBrokerTopicName(),
 		)
 
 		err = nil
@@ -144,9 +151,9 @@ func (c *Connection) Subscribe(topic string, maxRetryAttempts int) error {
 
 // BrokerHandler -
 func (c *Connection) BrokerHandler(client *MQTT.Client, msg MQTT.Message) {
-	c.Debug(
+	c.Info(
 		"Received new mqtt (worker: %s) - (message: %s) for (topic: %s). Building event now ...",
-		c.WorkerName(), msg.Payload(), msg.Topic(),
+		c.Name(), msg.Payload(), msg.Topic(),
 	)
 
 	event, err := events.NewEvent(msg)
@@ -156,13 +163,13 @@ func (c *Connection) BrokerHandler(client *MQTT.Client, msg MQTT.Message) {
 		return
 	}
 
-	c.Debug("Event successfully created (data: %v)", event)
+	c.Info("Event successfully created (data: %v)", event)
 	c.events <- event
 }
 
 // Validate -
 func (c *Connection) Validate() error {
-	c.Debug("Validating mqtt configuration for (worker: %q)", c.WorkerName())
+	c.Info("Validating mqtt configuration for (worker: %q)", c.Name())
 
 	if c.Config.Get("connection") == nil {
 		return fmt.Errorf(
@@ -255,8 +262,8 @@ func (c *Connection) GetBrokerCredentials() (string, string) {
 	return connection["username"].(string), connection["password"].(string)
 }
 
-// GetBrokerClientId -
-func (c *Connection) GetBrokerClientId() string {
+// GetBrokerClientID -
+func (c *Connection) GetBrokerClientID() string {
 	connection := c.Config.Get("connection").(map[string]interface{})
 	return connection["clientId"].(string)
 }
@@ -267,31 +274,31 @@ func (c *Connection) GetBrokerTopicName() string {
 	return connection["topic"].(string)
 }
 
-// WorkerName -
-func (c *Connection) WorkerName() string {
-	return c.Config.Get("worker_name").(string)
+// Name -
+func (c *Connection) Name() string {
+	return c.Config.Get("name").(string)
 }
 
 // Stop - Will ensure that connection including subscription is killed allowing graceful timeout
 func (c *Connection) Stop() error {
-	c.Warning("Stopping mqtt (worker: %s) ...", c.WorkerName())
+	c.Warning("Stopping mqtt (worker: %s) ...", c.Name())
 
 	if !c.conn.IsConnected() {
-		c.Warning("Connection for mqtt (worker: %s) is already closed.", c.WorkerName())
+		c.Warning("Connection for mqtt (worker: %s) is already closed.", c.Name())
 		return nil
 	}
 
-	c.Warning("Unsubscribing from mqtt (worker: %s) (topic: %s)...", c.WorkerName(), c.GetBrokerTopicName())
+	c.Warning("Unsubscribing from mqtt (worker: %s) (topic: %s)...", c.Name(), c.GetBrokerTopicName())
 	if token := c.conn.Unsubscribe(c.GetBrokerTopicName()); token.Wait() && token.Error() != nil {
 		c.Error(
 			"Could not unsubscribe from (topic: %s) for (worker: %s) due to (err: %s)",
-			c.GetBrokerTopicName(), c.WorkerName(), token.Error(),
+			c.GetBrokerTopicName(), c.Name(), token.Error(),
 		)
 	}
 
 	c.Warning(
 		"Stopping mqtt (worker: %s) connection (graceful_timeout: %ds)...",
-		c.WorkerName(), GracefulShutdownTimeout,
+		c.Name(), GracefulShutdownTimeout,
 	)
 
 	c.conn.Disconnect(uint(GracefulShutdownTimeout))

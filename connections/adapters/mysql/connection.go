@@ -1,3 +1,8 @@
+// Copyright 2015 The PowerUnit Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+// Package mysql ...
 package mysql
 
 import (
@@ -20,8 +25,8 @@ type Connection struct {
 }
 
 // Start - Will connect to database and than try to reconnect in case that we get disconnected
-func (m *Connection) Start(done chan bool) chan error {
-	m.Debug("Starting MSQL Connection: %s ...", m.Uri)
+func (m *Connection) Start(done chan bool) error {
+	m.Info("Starting MSQL Connection: %s ...", m.Uri)
 
 	// Keep track of first connection, blocking, reconnect in background
 	started := make(chan bool)

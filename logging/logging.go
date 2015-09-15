@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/powerunit-io/platform/constants"
+	"github.com/powerunit-io/platform/utils"
 )
 
 // Logger -
@@ -27,17 +27,19 @@ func (l *Logger) SetOutput(output io.Writer) {
 // SetLevel -
 func (l *Logger) SetLevel(levelEnv string) error {
 
-	level := constants.DEFAULT_LOGGING_LEVEL
+	level := DefaultLoggingLevel
 
 	if lvl := os.Getenv(levelEnv); lvl != "" {
 		level = lvl
 	}
 
-	if lvl, err := logrus.ParseLevel(level); err != nil {
+	lvl, err := logrus.ParseLevel(level)
+
+	if err != nil {
 		return fmt.Errorf("Could not set logging level due to (err: %s)", err)
-	} else {
-		logrus.SetLevel(lvl)
 	}
+
+	logrus.SetLevel(lvl)
 
 	return nil
 }
@@ -83,15 +85,32 @@ func (l *Logger) GetContextLogger(fields map[string]interface{}) *logrus.Entry {
 }
 
 // New -
-func New() *Logger {
+func New(conf map[string]interface{}) *Logger {
 	logger := Logger{}
 
+	forceColors := FormatterForceColors
+	timestampFormat := FormatterTimestampFormat
+
+	if utils.KeyInSlice("formatter_force_colors", conf) {
+		forceColors = conf["formatter_force_colors"].(bool)
+	}
+
+	if utils.KeyInSlice("formatter_timestamp_format", conf) {
+		timestampFormat = conf["formatter_timestamp_format"].(string)
+	}
+
 	logger.SetFormatter(&logrus.TextFormatter{
-		ForceColors:     true,
-		TimestampFormat: "Mon Jan _2 15:04:05 2006",
-		FullTimestamp:   true,
-		DisableSorting:  true,
+		ForceColors:     forceColors,
+		TimestampFormat: timestampFormat,
 	})
+
+	if utils.KeyInSlice("output", conf) {
+		logger.SetOutput(conf["output"].(io.Writer))
+	}
+
+	if utils.KeyInSlice("level", conf) {
+		logger.SetLevel(conf["level"].(string))
+	}
 
 	return &logger
 }

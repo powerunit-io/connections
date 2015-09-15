@@ -2,13 +2,19 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// Package connections ...
-package connections
+// Package devices ...
+package devices
 
 import (
 	"github.com/powerunit-io/platform/logging"
 	"github.com/powerunit-io/platform/managers"
 )
+
+// Device -
+type Device interface {
+	Name() string
+	Pin() uint64
+}
 
 // Manager -
 type Manager interface {
@@ -17,8 +23,5 @@ type Manager interface {
 
 // NewManager -
 func NewManager(logger *logging.Logger) Manager {
-	return Manager(&managers.BaseManager{
-		Logger:   logger,
-		Services: make(map[string]managers.Service),
-	})
+	return Manager(&managers.BaseManager{Logger: logger})
 }
