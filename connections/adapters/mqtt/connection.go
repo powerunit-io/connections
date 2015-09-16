@@ -279,6 +279,11 @@ func (c *Connection) Name() string {
 	return c.Config.Get("name").(string)
 }
 
+// Adapter -
+func (c *Connection) Adapter() interface{} {
+	return &c
+}
+
 // Stop - Will ensure that connection including subscription is killed allowing graceful timeout
 func (c *Connection) Stop() error {
 	c.Warning("Stopping mqtt (worker: %s) ...", c.Name())

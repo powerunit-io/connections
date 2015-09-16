@@ -16,7 +16,8 @@ type BaseService struct {
 
 	Config *config.Config
 
-	done chan bool
+	Runtime chan string
+	Done    chan bool
 }
 
 // Version - Service version

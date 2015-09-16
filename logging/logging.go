@@ -70,8 +70,8 @@ func (l *Logger) Debug(format string, args ...interface{}) {
 }
 
 // Print -
-func (l *Logger) Print(format string, args ...interface{}) {
-	logrus.Printf(format, args...)
+func (l *Logger) Print(args ...interface{}) {
+	logrus.Print(args...)
 }
 
 // Panic -

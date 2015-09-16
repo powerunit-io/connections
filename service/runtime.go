@@ -12,23 +12,20 @@ import (
 
 // Start -
 func (bs *BaseService) Start() error {
-	bs.Info(
-		"Starting up (service: %s) - (ver: %v)",
-		bs.Name(), bs.Config.Get("service_version"),
-	)
-
-	bs.done = make(chan bool)
-
-	var wg sync.WaitGroup
+	bs.Info("Starting up (service: %s) - (ver: %v)", bs.Name(), bs.Config.Get("service_version"))
 
 	go bs.HandleSigterm()
 
-	bs.StartConnections(wg)
-	bs.StartDevices(wg)
-	bs.StartWorkers(wg)
+	if err := bs.StartDevices(); err != nil {
+		return err
+	}
+
+	if err := bs.StartWorkers(); err != nil {
+		return err
+	}
 
 	select {
-	case <-bs.done:
+	case <-bs.Done:
 		bs.Warning("Service exit signal caught. Waiting for 5 seconds and killing...")
 
 		// Give it a little bit of the time.
@@ -75,17 +72,17 @@ func (bs *BaseService) Stop() error {
 }
 
 // StartConnections -
-func (bs *BaseService) StartConnections(wg sync.WaitGroup) {
-	cm := bs.Connections
+func (bs *BaseService) StartConnections() (err error) {
+	var wg sync.WaitGroup
 
-	bs.Info("Available (connections: %v). Starting them up now ...", cm.List())
+	bs.Info("Available (connections: %v). Starting them up now ...", bs.Connections.List())
 
-	for _, service := range cm.All() {
+	for _, service := range bs.Connections.All() {
 		wg.Add(1)
 
 		go func(s managers.Service) {
 
-			if err := s.Start(bs.done); err != nil {
+			if err = s.Start(bs.Done); err != nil {
 				bs.Error("Could not start (connection: %s) due to (error: %s)", s.Name(), err)
 			}
 
@@ -94,10 +91,14 @@ func (bs *BaseService) StartConnections(wg sync.WaitGroup) {
 	}
 
 	wg.Wait()
+
+	return
 }
 
 // StartDevices -
-func (bs *BaseService) StartDevices(wg sync.WaitGroup) {
+func (bs *BaseService) StartDevices() (err error) {
+	var wg sync.WaitGroup
+
 	bs.Info("Available (devices: %v). Starting them up now ...", bs.Devices.List())
 
 	for _, service := range bs.Devices.All() {
@@ -105,7 +106,7 @@ func (bs *BaseService) StartDevices(wg sync.WaitGroup) {
 
 		go func(s managers.Service) {
 
-			if err := s.Start(bs.done); err != nil {
+			if err = s.Start(bs.Done); err != nil {
 				bs.Error("Could not start (device: %s) due to (error: %s)", s.Name(), err)
 			}
 
@@ -114,10 +115,13 @@ func (bs *BaseService) StartDevices(wg sync.WaitGroup) {
 	}
 
 	wg.Wait()
+	return
 }
 
 // StartWorkers -
-func (bs *BaseService) StartWorkers(wg sync.WaitGroup) {
+func (bs *BaseService) StartWorkers() (err error) {
+	var wg sync.WaitGroup
+
 	bs.Info("Available (workers: %v). Starting them up now ...", bs.Workers.List())
 
 	for _, service := range bs.Workers.All() {
@@ -125,7 +129,7 @@ func (bs *BaseService) StartWorkers(wg sync.WaitGroup) {
 
 		go func(s managers.Service) {
 
-			if err := s.Start(bs.done); err != nil {
+			if err = s.Start(bs.Done); err != nil {
 				bs.Error("Could not start (worker: %s) due to (error: %s)", s.Name(), err)
 			}
 
@@ -134,6 +138,7 @@ func (bs *BaseService) StartWorkers(wg sync.WaitGroup) {
 	}
 
 	wg.Wait()
+	return
 }
 
 // HandleSigterm - Will basically wait for channel to close and than initiate
@@ -146,5 +151,5 @@ func (bs *BaseService) HandleSigterm() {
 
 	<-skill
 
-	close(bs.done)
+	close(bs.Done)
 }

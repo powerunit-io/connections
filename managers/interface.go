@@ -11,6 +11,12 @@ type Service interface {
 	Stop() error
 	Validate() error
 	Name() string
+
+	// Adapter - Will return instance of service. If it's mysql, it will
+	// return mysql.Connection instance
+	// remember that you will need to cast it to proper type before it can be used
+	// example: db = service.Adapter().(*mysql.Connection) fmt.Printf("%q", db.DB)
+	Adapter() interface{}
 }
 
 // Manager -

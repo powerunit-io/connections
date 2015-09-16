@@ -16,6 +16,11 @@ type WorkerBase struct {
 	*config.Config
 }
 
+// Adapter - here just to satisfy interface. We really do not need this...
+func (wb *WorkerBase) Adapter() interface{} {
+	return nil
+}
+
 // Name - Will return name of the worker ...
 func (wb *WorkerBase) Name() string {
 	return wb.Config.Get("name").(string)

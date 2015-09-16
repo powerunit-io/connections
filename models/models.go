@@ -5,37 +5,12 @@
 // Package models ...
 package models
 
+import "time"
+
 // BaseModel -
 type BaseModel struct {
-	Id int64
-}
-
-// List -
-func (bm *BaseModel) List() []Model {
-	return nil
-}
-
-// Get -
-func (bm *BaseModel) Get() Model {
-	return nil
-}
-
-// Exists -
-func (bm *BaseModel) Exists() bool {
-	return false
-}
-
-// Create -
-func (bm *BaseModel) Create(data map[string]interface{}) Model {
-	return nil
-}
-
-// Update -
-func (bm *BaseModel) Update(data map[string]interface{}) Model {
-	return nil
-}
-
-// Delete -
-func (bm *BaseModel) Delete() bool {
-	return false
+	ID        int64 `sql:"AUTO_INCREMENT",gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time `sql:"DEFAULT:current_timestamp"`
+	DeletedAt *time.Time
 }

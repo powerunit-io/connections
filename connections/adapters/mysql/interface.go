@@ -29,6 +29,6 @@ func NewAdapter(n string, conf map[string]interface{}, logger *logging.Logger) (
 	cnf.Set("name", n)
 
 	return Adapter(&Connection{
-		Logger: logger, Config: cnf, Uri: cnf.Get("uri").(string),
+		Logger: logger, Config: cnf, URI: cnf.Get("uri").(string),
 	}), nil
 }

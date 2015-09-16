@@ -7,10 +7,4 @@ package models
 
 // Model -
 type Model interface {
-	List() []Model
-	Get() Model
-	Exists() bool
-	Create(data map[string]interface{}) Model
-	Update(data map[string]interface{}) Model
-	Delete() bool
 }
